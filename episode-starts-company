@@ -1,0 +1,31 @@
+--EPISODE STARTS BY STATE BY COMPANY
+WITH state_data AS
+(SELECT lyra_id, state,
+ ROW_NUMBER() OVER (partition BY lyra_id ORDER BY lyra_id, elig_state_id ASC) AS state_num
+ FROM lyra.eligibility.eligibility),
+
+BASE AS
+(SELECT
+s.company,
+s.us_state,
+s.client_episode_id,
+MIN(date_of_service) AS first_dos --capturing earliest start by episode by company
+FROM lyra.sessions.sessions s 
+INNER JOIN lyra.customers.companies sc ON sc.company_name = s.company
+INNER JOIN state_data s_d ON s_d.lyra_id = s.patient_lyra_id
+WHERE sc.end_datestring IS NULL --if the end_datestring column is populated, it means the customer is no longer active w/lyra
+AND s_d.state_num = '1'
+GROUP BY 1,2,3
+)
+
+SELECT
+DATE_TRUNC('month',BASE.first_dos)::date AS mos, --truncates date of service to months, transforms resulting string to date format (can change to ::timestamp if you prefer having the lagging 0s)
+BASE.company,
+BASE.us_state,
+COUNT(DISTINCT BASE.client_episode_id) as count
+FROM BASE
+WHERE BASE.first_dos >= '2022-01-01' AND BASE.first_dos < '2022-03-01' 
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+
+
