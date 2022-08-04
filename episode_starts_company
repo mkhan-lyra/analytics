@@ -21,11 +21,11 @@ GROUP BY 1,2,3
 SELECT
 DATE_TRUNC('month',BASE.first_dos)::date AS mos, --truncates date of service to months, transforms resulting string to date format (can change to ::timestamp if you prefer having the lagging 0s)
 BASE.company,
-BASE.us_state,
+case when BASE.us_state is null then 'UN' else BASE.us_state end as us_state,
 COUNT(DISTINCT BASE.client_episode_id) as count
 FROM BASE
 WHERE BASE.first_dos >= '2022-01-01' AND BASE.first_dos < '2022-03-01' 
 GROUP BY 1,2,3
+HAVING count > 0
 ORDER BY 1,2,3
-
-
+ 
